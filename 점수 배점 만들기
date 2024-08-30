@@ -1,0 +1,41 @@
+import streamlit as st
+
+# Title of the app
+st.title("점수 배점 만들기")
+
+# Placeholder for explanation section
+st.write("문제의 배점을 고민하지 마세요. 제가 드립니다.")
+
+# Input fields for the user to enter the required parameters
+total_questions = st.number_input("총 문제의 수", min_value=1, value=10)
+total_score = st.number_input("총 배점수", min_value=1, value=100)
+num_top = st.number_input("상위 문제의 수", min_value=0, max_value=total_questions, value=3)
+num_mid = st.number_input("중위 문제의 수", min_value=0, max_value=total_questions - num_top, value=4)
+num_bottom = st.number_input("하위 문제의 수", min_value=0, max_value=total_questions - num_top - num_mid, value=3)
+
+# Check if the sum of different question types matches the total number of questions
+if num_top + num_mid + num_bottom != total_questions:
+    st.error("상위, 중위, 하위 문제의 수의 합이 총 문제의 수와 일치하지 않습니다.")
+else:
+    # Calculate total weights
+    top_weight = total_score * 0.5  # 50% weight for top-level questions
+    mid_weight = total_score * 0.3  # 30% weight for mid-level questions
+    bottom_weight = total_score * 0.2  # 20% weight for bottom-level questions
+
+    # Calculate individual question scores
+    if num_top > 0:
+        top_score = top_weight / num_top
+    else:
+        top_score = 0
+
+    if num_mid > 0:
+        mid_score = mid_weight / num_mid
+    else:
+        mid_score = 0
+
+    if num_bottom > 0:
+        bottom_score = bottom_weight / num_bottom
+    else:
+        bottom_score = 0
+
+    # D
