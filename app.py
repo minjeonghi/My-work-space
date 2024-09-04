@@ -1,67 +1,54 @@
-# Import necessary libraries
 import streamlit as st
-import random
+import pandas as pd
+from datetime import datetime, timedelta
 
-# Define a pool of questions and answers (expandable or load from a database)
-question_pool = [
-    {
-        "question": "What is the acceleration due to gravity on Earth?",
-        "options": ["9.8 m/s^2", "10 m/s^2", "9.81 m/s^2", "8.9 m/s^2"],
-        "answer": "9.8 m/s^2"
-    },
-    {
-        "question": "What is the formula for kinetic energy?",
-        "options": ["KE = 1/2 mv^2", "KE = mv", "KE = 1/2 mv", "KE = m^2v^2"],
-        "answer": "KE = 1/2 mv^2"
-    },
-    {
-        "question": "What is the speed of light?",
-        "options": ["3 x 10^8 m/s", "1.5 x 10^8 m/s", "3 x 10^6 m/s", "2 x 10^8 m/s"],
-        "answer": "3 x 10^8 m/s"
-    },
-    {
-        "question": "What is Newton's second law of motion?",
-        "options": ["F = ma", "F = mv", "F = m/a", "F = v/a"],
-        "answer": "F = ma"
-    },
-    {
-        "question": "Which of these is a scalar quantity?",
-        "options": ["Velocity", "Force", "Speed", "Acceleration"],
-        "answer": "Speed"
-    }
-]
+# Title of the app
+st.title("Recurring Lesson Plan Generator")
 
-# Set the title of the app
-st.title("Physics Review Questions")
+# Explanation
+st.write("이 앱은 반복되는 수업 요일과 특정 휴일을 제외한 수업 계획서를 자동으로 생성합니다.")
 
-# Randomly select a subset of questions for each session
-def get_random_questions(num_questions=3):
-    return random.sample(question_pool, num_questions)
+# Input fields
+class_name = st.text_input("수업반 이름:")
+start_date = st.date_input("수업 시작 날짜:")
+end_date = st.date_input("수업 종료 날짜:")
+class_days = st.multiselect("수업 요일 선택:", ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"])
+skip_dates = st.multiselect("수업 빠지는 날짜 선택:", pd.date_range(start=start_date, end=end_date))
 
-# Load the selected questions
-selected_questions = get_random_questions()
+# Map days of the week to numbers for easy comparison
+day_map = {
+    "월요일": 0,
+    "화요일": 1,
+    "수요일": 2,
+    "목요일": 3,
+    "금요일": 4,
+    "토요일": 5,
+    "일요일": 6
+}
 
-# Function to load questions
-def load_question(index):
-    q = selected_questions[index]
-    st.write(f"**Q{index+1}:** {q['question']}")
-    user_answer = st.radio("Choose your answer:", q['options'], key=f"question_{index}")
-    return user_answer, q['answer']
+# Generate lesson plan dates
+def generate_dates(start_date, end_date, class_days, skip_dates):
+    current_date = start_date
+    lesson_dates = []
+    
+    while current_date <= end_date:
+        if current_date.weekday() in [day_map[day] for day in class_days] and current_date not in skip_dates:
+            lesson_dates.append(current_date)
+        current_date += timedelta(days=1)
+    
+    return lesson_dates
 
-# Function to check answers
-def check_answer(user_answer, correct_answer):
-    if user_answer == correct_answer:
-        st.success("Correct!")
+# Generate and display the lesson plan
+if st.button("수업 계획서 생성"):
+    if class_name and start_date and end_date and class_days:
+        lesson_dates = generate_dates(start_date, end_date, class_days, skip_dates)
+        df = pd.DataFrame(lesson_dates, columns=["수업 날짜"])
+        df["수업반"] = class_name
+        st.write(f"{class_name}의 수업 계획서")
+        st.dataframe(df)
+        
+        # Option to download as CSV
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(label="수업 계획서 다운로드 (CSV)", data=csv, file_name=f"{class_name}_lesson_plan.csv", mime='text/csv')
     else:
-        st.error(f"Incorrect. The correct answer is: {correct_answer}")
-
-# Iterate through each question
-for i, q in enumerate(selected_questions):
-    user_answer, correct_answer = load_question(i)
-    if st.button(f"Submit Answer for Question {i+1}", key=f"submit_{i}"):
-        check_answer(user_answer, correct_answer)
-
-# Optionally, add a summary or score feature
-if st.button("Show Summary"):
-    correct_count = sum(1 for i, q in enumerate(selected_questions) if st.session_state.get(f"question_{i}") == q['answer'])
-    st.write(f"You answered {correct_count} out of {len(selected_questions)} questions correctly!")
+        st.error("모든 입력 필드를 채워주세요.")
